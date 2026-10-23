@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from properties.models import Property, PropertyImage
+from properties.models import Property, PropertyImage, Agent
 
 
 class Command(BaseCommand):
@@ -9,6 +9,7 @@ class Command(BaseCommand):
         self.stdout.write("Seeding Indian luxury real estate database...")
         PropertyImage.objects.all().delete()
         Property.objects.all().delete()
+        Agent.objects.all().delete()
 
         properties_data = [
             # 1. Mumbai - Altamount Road
@@ -988,6 +989,22 @@ class Command(BaseCommand):
         created_count = 0
         for p_data in properties_data:
             gallery = p_data.pop("gallery", [])
+            agent_name = p_data.get("agent_name")
+            agent_email = p_data.get("agent_email")
+            agent_phone = p_data.get("agent_phone")
+            if agent_email and agent_name:
+                agent_obj, _ = Agent.objects.get_or_create(
+                    email=agent_email,
+                    defaults={
+                        "name": agent_name,
+                        "phone": agent_phone or "+91 98201 44521",
+                        "avatar": "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80",
+                        "title": "Luxury Portfolio Specialist",
+                        "bio": f"Dedicated luxury advisor representing premier properties for {agent_name}."
+                    }
+                )
+                p_data["agent"] = agent_obj
+
             prop = Property.objects.create(**p_data)
             created_count += 1
             for idx, img_url in enumerate(gallery):
